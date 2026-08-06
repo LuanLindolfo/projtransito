@@ -7,7 +7,7 @@ from ultralytics import YOLO
 
 # 1. Configurações Iniciais e Criação de Diretórios
 # Insira a URL do seu stream ao vivo. Suporta links RTSP, M3U8 ou HTTP(S) de câmeras IP.
-STREAM_URL = "https://rodovias.motiva.com.br/riosp/cameras-ao-vivo/" 
+STREAM_URL = "https://d3b8201cy0qzzb.cloudfront.net/out/v1/db7ff89ac2dc4a2fa37f763f27429d86/CMAF_HLS/index_1.m3u8" 
 DATA_DIR = "data"
 IMAGES_DIR = "images"
 
