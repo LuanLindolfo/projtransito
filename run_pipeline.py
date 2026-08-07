@@ -21,32 +21,36 @@ if not cap.isOpened():
     raise Exception("Falha ao abrir a conexão com o stream de vídeo. Verifique a URL.")
 
 ret, frame = cap.read()
-cap.release() # Libera imediatamente
+cap.release() # Libera imediatamente para não travar o runner
 
 if not ret:
     raise Exception("A conexão foi estabelecida, mas não foi possível ler o frame.")
 
-# --- NOVA LÓGICA: Detecção de Dia/Noite baseada em luminosidade ---
-# Converte a imagem para tons de cinza e calcula a média dos pixels (0 a 255)
+# --- LÓGICA: Detecção de Dia/Noite baseada em luminosidade ---
 gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 brilho_medio = gray_frame.mean()
-# Limiar de brilho (ajuste se necessário. Geralmente < 80 a 90 é noite em câmeras de rua)
 periodo = "Dia" if brilho_medio > 85 else "Noite"
 print(f"Luminosidade média: {brilho_medio:.2f} -> Classificado como: {periodo}")
 # -------------------------------------------------------------------
 
-# Salva o frame temporário (YOLO também aceita o frame direto na memória, mas manteremos o arquivo)
+# Salva o frame temporário
 image_path = "temp_image.jpg"
 cv2.imwrite(image_path, frame)
 print("Frame capturado com sucesso!")
 
 # 3. Inferência com YOLOv8 (Transform / Machine Learning)
-print("Iniciando inferência...")
-model = YOLO('yolov8n.pt') 
-# Passando o frame diretamente em vez do caminho da imagem acelera o processo
-results = model(frame)
+print("Iniciando inferência com modelo Medium...")
 
-# --- EXPANSÃO: Mais classes do COCO dataset ---
+# UPGARDE 1: Usando o modelo Medium (mais inteligente para veículos grandes e pessoas)
+model = YOLO('yolov8m.pt') 
+
+# UPGRADE 2: Ajuste fino na inferência
+# conf=0.20 -> Aceita detecções com 20% ou mais de certeza (pega veículos distantes ou no escuro).
+# iou=0.45 -> Se duas caixas se sobrepõem em 45% ou mais, a de menor confiança é apagada (evita contagem dupla).
+# imgsz=736 -> Aumenta a resolução da imagem lida pela IA para ver detalhes no fundo da câmera.
+results = model(frame, conf=0.20, iou=0.45, imgsz=736)
+
+# EXPANSÃO: Classes alvo do COCO dataset
 # 0=person, 1=bicycle, 2=car, 3=motorcycle, 5=bus, 7=truck
 target_classes = [0, 1, 2, 3, 5, 7]
 counts = {"person": 0, "bicycle": 0, "car": 0, "motorcycle": 0, "bus": 0, "truck": 0}
@@ -58,14 +62,14 @@ for box in results[0].boxes:
         if class_name in counts:
             counts[class_name] += 1
 
-# Renderiza a imagem com as caixas de detecção (bounding boxes)
+# Renderiza a imagem com as caixas de detecção
 annotated_frame = results[0].plot()
 
-# Escreve o Período (Dia/Noite) diretamente na imagem final para fins visuais
+# Escreve o Período (Dia/Noite) na imagem final
 texto_info = f"Periodo: {periodo} | Brilho: {brilho_medio:.1f}"
 cv2.putText(annotated_frame, texto_info, (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
 
-# Salva a imagem final processada
+# Salva a imagem processada
 cv2.imwrite(os.path.join(IMAGES_DIR, 'latest_detection.jpg'), annotated_frame)
 print(f"Detecções: {counts}")
 
@@ -73,7 +77,6 @@ print(f"Detecções: {counts}")
 csv_path = os.path.join(DATA_DIR, 'traffic_log.csv')
 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-# Adicionando as novas métricas ao dataframe
 new_data = {
     "timestamp": [timestamp],
     "periodo": [periodo],
@@ -87,8 +90,7 @@ new_data = {
 }
 df_new = pd.DataFrame(new_data)
 
-# Se o CSV antigo existir, precisamos garantir que o cabeçalho bate. 
-# Como adicionamos colunas, se você já tinha um arquivo, ele fará o append, mas recomendo deletar o antigo.
+# Append no CSV
 if os.path.exists(csv_path):
     df_new.to_csv(csv_path, mode='a', header=False, index=False)
 else:
@@ -99,15 +101,16 @@ df = pd.read_csv(csv_path)
 df['timestamp'] = pd.to_datetime(df['timestamp'])
 df_recent = df.tail(24)
 
-# Atualizando o gráfico para mostrar pessoas e carros
+# Plotando as linhas principais
 plt.figure(figsize=(12, 6))
 plt.plot(df_recent['timestamp'], df_recent['car'], label='Carros', marker='o', color='blue')
 plt.plot(df_recent['timestamp'], df_recent['truck'], label='Caminhões', marker='x', color='red')
+plt.plot(df_recent['timestamp'], df_recent['bus'], label='Ônibus', marker='^', color='orange')
 plt.plot(df_recent['timestamp'], df_recent['person'], label='Pessoas', marker='s', color='green')
 
-# Mudando a cor de fundo do gráfico se for noite na última captura
+# Contexto noturno no gráfico
 if df_recent['periodo'].iloc[-1] == "Noite":
-    plt.gca().set_facecolor('#f0f0f5') # Um cinza bem leve para indicar ambiente noturno
+    plt.gca().set_facecolor('#f0f0f5') 
 
 plt.title("Fluxo de Tráfego - Últimas 24 Leituras")
 plt.xlabel("Horário")
