@@ -2,13 +2,11 @@
 
 mermaid
 flowchart TD
-    %% Estilos visuais
     classDef idea fill:#f9f,stroke:#333,stroke-width:2px;
     classDef process fill:#bbf,stroke:#333,stroke-width:2px;
     classDef storage fill:#bfb,stroke:#333,stroke-width:2px;
     classDef output fill:#ff9,stroke:#333,stroke-width:2px;
 
-    %% Nós do Fluxograma
     A[Ter a Ideia: Monitorar Trânsito Automaticamente]:::idea --> B[Escolher uma Câmera Pública ao Vivo]:::process
     B --> C[Definir a Frequência de Coleta: Ex. De hora em hora]:::process
     
@@ -28,5 +26,4 @@ flowchart TD
 
     J --> K[Acompanhar os dados e gráficos de qualquer lugar]:::output
 
-    %% Transição cíclica
     D -.->|Repete sozinho| E
