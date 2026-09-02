@@ -1,6 +1,6 @@
 ## 🗺️ Visão Geral da Ideia
 
-mermaid
+```mermaid
 flowchart TD
     classDef idea fill:#f9f,stroke:#333,stroke-width:2px;
     classDef process fill:#bbf,stroke:#333,stroke-width:2px;
