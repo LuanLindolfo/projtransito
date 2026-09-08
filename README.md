@@ -332,6 +332,3 @@ timestamp,periodo,brilho,person,bicycle,car,motorcycle,bus,truck
 ✅ **Escalabilidade** - Pode adaptar para múltiplas câmeras  
 ✅ **Nenhuma infraestrutura custosa** - Usa GitHub Actions gratuitamente  
 
----
-
-Quer que eu explore mais algum aspecto específico do projeto? 🤖
